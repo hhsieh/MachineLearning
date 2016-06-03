@@ -1,0 +1,23 @@
+<!doctype html>
+<title> Stock Query </title>
+<link rel=stylesheet type=text/css href='{{ url_for('static',filename='style_lulu.css')}}'>
+<div class=page>
+  <h1> User Input</h1>
+  <h3> Please enter a stock ticker eg. GOOG, to generate stock prices within a month. </h3>
+  <div class=metanav>
+
+
+    <form id='stockquery' method='post' action='index_stock' >
+      <p>
+    Ticker symbol: <input type="text" name="name_stock" value = "{{''}}">
+      </p>
+      
+       	
+      <p>
+    <input type='submit' value='Submit' />
+      </p>
+    </form>
+
+  </div>
+</div>
+</html>

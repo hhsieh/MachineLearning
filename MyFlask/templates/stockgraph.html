@@ -1,0 +1,22 @@
+<!doctype html>
+<head>
+<title>Stock graph</title>
+
+
+    {{ js_resources|indent(4)|safe }}
+
+    {{ css_resources|indent(4)|safe }}
+
+    {{ plot_script|indent(4)|safe }}
+    
+<link rel=stylesheet type=text/css href='{{ url_for('static',filename='style_lulu.css')}}'>
+</head>
+<div class=page>
+  <h1> Generated graph for stock {{ticker}} </h1>
+  <a href="index_stock"> BACK </a> </br>
+  
+  
+     {{ plot_div|indent(4)|safe }}
+        
+  
+</div>
