@@ -1,11 +1,16 @@
+## for city_model, suggestion from Kee-Chul Chang
+## You should be able to do everything with pandas, using groupby and aggregate. It should be in the fit function of your classifier. If you want to adhere to scikit-learn behavior, your predict method should accept a list of city names and return a list of predicted star values.
+
+       
+
 import json
 
 #read in data
 data = []
-with open('/Users/achimnyswallow/Downloads/yelp_data.json') as f:
+with open('yelp_data.json') as f:
     for line in f:
         data.append(json.loads(line))
-
+#print(data[:1])
         
 #len(data) #37938
 #print(data[0]) #take a look of the basic structure of the jason data
@@ -14,6 +19,7 @@ with open('/Users/achimnyswallow/Downloads/yelp_data.json') as f:
 attr = []      
 for i in range(len(data[0].keys())):
 	attr.append(data[0].keys()[i])
+
 #print(attr)
 
 #attr[10] == "stars", the target in the model
@@ -76,9 +82,9 @@ for i in range(len(data)):
 categories = []
 for i in range(len(data)):
 	categories.append(data[i].values()[14])
-		
-	
-
+print([categories[:1][-1]])  #[-1] gives the most general categories, omitting the sub-categories		
+print([categories[1:2][-1]])	
+print([categories[3:4][-1]])
 # to count how many cities there are in the list
 unique = set(city)
 len(unique) #167
@@ -90,10 +96,13 @@ dd = pd.DataFrame({'city': city, 'stars' : stars})
 #print(dd)
 
 city_count = pd.value_counts(dd['city'].values, sort = False)
-print(city_count)
+#print(city_count)
 city_mean_stars = dd.groupby(['city']).mean()
-print(city_mean_stars)
+#print(city_mean_stars)
 #print(len(city_mean_stars))
+
+ladf = pd.DataFrame({'city': city, 'lon': longitude, 'lat': latitude, 'stars': stars})
+#print(ladf)
 
 ######################################
 ## below works the same as city_count"
@@ -114,7 +123,6 @@ print(city_mean_stars)
 #print(citycount)	
 
 ###################################
-
 ## estimator (assign the max value to each x of the test data)
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -153,8 +161,11 @@ pred = A.predict(asncityid)
 print(A.score(dd['stars'], pred))		
 # take data unbalance into consideration while splitting data to training and testing data for cross-validation
 
+
 ## city model
-class MeanClassifier(BaseEstimator, ClassifierMixin):
+
+from sklearn.base import RegressorMixin, BaseEstimator
+class MeanClassifier(BaseEstimator, RegressorMixin):
 	def __init__(self):
 		self.cityid_ = []
 		self.cntX = []
@@ -165,12 +176,14 @@ class MeanClassifier(BaseEstimator, ClassifierMixin):
 		return self.cntX
 	
 	def fit(self, X, y):
-		self.meanclasses_, meanindices = np.unique(y, return_inverse = True)
-		self.cityid_, idx = np.unique(X, return_inverse = True)
+		self.meanclasses_, meanindices = np.unique(y, return_inverse = True) #this is mean stars 
+		self.cityid_, idx = np.unique(X, return_inverse = True) #this is city
 		#print(X)
-		self.df = pd.DataFrame({"X": X, "y": y})
+		self.df = pd.DataFrame({"X": X, "y": y}) #collect city and mean stars and make a pandas dataframe
 		#print(self.df)
-		self.mean_ = np.array(self.df.groupby(['X']).mean())
+		#self.mean_ = np.array(self.df.groupby(['X']).mean()) #generate one mean star for each city
+		self.means_ = self.df.groupby(['X']).mean()
+                #self.m1, self.m2 = np.unique(self.mean_, return_inverse = True)
 		#print(type(self.mean_))
 		#print(self.group_)
 		#print(self.mean_)
@@ -179,22 +192,64 @@ class MeanClassifier(BaseEstimator, ClassifierMixin):
 	def predict(self, X):
 		#print(list(self.cityid_).index(X))
 		#print(float(self.mean_[list(self.cityid_).index(X)]))
-		return float(round(self.mean_[list(self.cityid_).index(X)]*2.)/2.)
+		#z = self.cityid_  
+		#return float(self.mean_.ix[X].values) ##self.mean_[self.cityid_][0]
+                return list(self.means_.loc[X, 'y'])       
 
 B = MeanClassifier()
 
 newcityid = B.X3(dd['city'])
 
 B.fit(newcityid, dd['stars'])
-Bpred = list(map(B.predict,newcityid))
-#print(Bpred[:5])
 
-bbstars = list(map(float, dd['stars']))
-#print(bbstars[:5])
+Bpred = B.predict(newcityid)
+print(Bpred[:5])
 
-#scoreframe = pd.DataFrame({'Bpred': Bpred})
-#print(type(scoreframe['bbstars']))
-#print(type(scoreframe['Bpred']))
-#print(map(B.score,bbstars,Bpred))
-# unfinished
+bbstars = map(float, list(dd['stars']))
+print(bbstars[:5])
+#print(list(dd['stars']))
+print(B.score(newcityid, dd['stars']))
 
+
+## lat_long_model
+#class ColumnSelectTransformer(base.BaseEstimator, base.TransformerMixin):
+
+from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.neighbors import KNeighborsRegressor
+
+class LonLatClassifier(BaseEstimator, RegressorMixin):
+    def __init__(self):
+        pass
+
+    def fit(self, X, y):
+        self.knn = KNeighborsRegressor(n_neighbors = 13)
+        self.knn.fit(X, y)
+        return self        
+
+    def predict(self, X):
+        return self.knn.predict(X)
+
+
+
+C = LonLatClassifier()
+data = pd.DataFrame({"longitude": longitude, "latitude": latitude, "star": stars})
+print(data.columns.values)
+
+#sturcture data like this to be read as X in the mode
+#[[data.loc[i][1], data.loc[i][2]] for i in range(4)]
+
+#x_columns = ["longitude", "latitude"]
+#y_column = ["star"]
+
+LonLat = [[data.loc[i][0], data.loc[i][1]] for i in range(len(data))]
+#print(len(LonLat))
+stars = [data.loc[i][2] for i in range(len(data))]
+#print(len(stars))
+
+Cfit = C.fit(LonLat, stars)  ##not giving newcityid but longitudes and latitudes
+#print(Cfit)
+
+Cpred = C.predict(LonLat[:10])
+print(Cpred)
+
+print(C.score(LonLat, stars))
